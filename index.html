@@ -23,6 +23,7 @@
 html,body{height:100%;margin:0;background:#dfe9f0;color:var(--ink);font-family:var(--body);overflow:hidden;-webkit-tap-highlight-color:transparent;}
 #app{position:fixed;inset:0;overflow:hidden;touch-action:manipulation;user-select:none;-webkit-user-select:none;background:#dfe9f0;}
 #scene{position:absolute;inset:0;width:100%;height:100%;display:block;}
+#storm{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;}
 #aurora{position:absolute;left:0;top:0;width:100%;height:50%;pointer-events:none;mix-blend-mode:screen;opacity:0;}
 .band{position:absolute;left:0;right:0;padding-left:max(16px, env(safe-area-inset-left,0px));padding-right:max(16px, env(safe-area-inset-right,0px));}
 #hud{position:absolute;inset:0;pointer-events:none;}
@@ -108,6 +109,25 @@ kbd{font-family:var(--body);font-weight:600;font-size:13px;background:var(--fros
 .sheet-in p{margin:0;font-size:18px;line-height:1.5;color:var(--parch-ink);}
 .sheet-in .lyr{margin:0;padding:4px 0 4px 14px;border-left:2px solid rgba(138,42,28,.45);font-family:var(--hand);font-weight:600;font-size:23px;line-height:1.2;color:#4a2e14;}
 .sheet-in .sep{margin:14px 0 0;font-family:var(--display);font-size:13px;letter-spacing:.2em;text-transform:uppercase;text-align:center;color:#8a2a1c;}
+.voice{position:sticky;top:0;z-index:1;display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:8px;margin:0 -10px;padding:8px 10px 10px;background:linear-gradient(180deg,var(--parch) 82%,rgba(238,223,186,0));}
+.voice button{font-family:var(--body);text-transform:none;letter-spacing:0;border-radius:4px;display:inline-flex;align-items:center;gap:7px;}
+.voice svg{width:14px;height:14px;flex:none;}
+.vplay{background:#8a2a1c;color:#fbf1e2;font-size:17px;font-weight:600;padding:9px 16px;box-shadow:0 2px 0 #5e1a10;}
+.vplay:active{transform:translateY(1px);box-shadow:0 1px 0 #5e1a10;}
+.vstop{background:#e4d3a8;color:var(--parch-ink);padding:10px 11px;box-shadow:0 2px 0 rgba(58,40,20,.25);}
+.vstop[disabled]{opacity:.45;cursor:default;}
+.vrates{display:inline-flex;border-radius:4px;overflow:hidden;box-shadow:0 0 0 1px rgba(58,40,20,.3);}
+.vrates button{background:transparent;color:var(--parch-ink);font-size:15px;font-weight:600;padding:7px 9px;border-radius:0;font-variant-numeric:tabular-nums lining-nums;}
+.vrates button[aria-pressed="true"]{background:#5a3a18;color:#fbf1e2;}
+.vnote{font-size:15px;font-style:italic;color:var(--parch-soft);font-variant-numeric:lining-nums;}
+.sheet-in .speaking{background:rgba(201,151,58,.24);box-shadow:0 0 0 6px rgba(201,151,58,.24);border-radius:2px;}
+.read-b .lock{display:none;width:12px;height:14px;margin-right:6px;vertical-align:-1px;}
+.read-b.locked{background:#8d98a4;color:#f4f7fa;box-shadow:0 3px 0 #6b7580;}
+.read-b.locked .lock{display:inline-block;}
+.lock-note{margin:0;padding:8px 10px;border-radius:4px;background:var(--frost);font-size:15px;line-height:1.35;color:var(--ink);}
+.lock-note.flash{animation:flash .9s ease;}
+@keyframes flash{0%,100%{background:var(--frost);}30%{background:#f3d9d6;}}
+.sheet-foot .locked-txt{flex:1 1 100%;margin:0;text-align:center;font-style:italic;font-size:16px;color:var(--parch-soft);}
 .sheet-foot{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;padding-top:10px;}
 .sheet-foot button{flex:1 1 180px;}
 .sheet-foot .secondary{background:#e4d3a8;color:var(--parch-ink);box-shadow:0 2px 0 rgba(58,40,20,.25);}
@@ -119,6 +139,7 @@ kbd{font-family:var(--body);font-weight:600;font-size:13px;background:var(--fros
 <div id="app">
   <canvas id="scene" aria-label="Paisaje antártico del juego"></canvas>
   <canvas id="aurora" aria-hidden="true"></canvas>
+  <canvas id="storm" aria-hidden="true"></canvas>
   <div id="hud" hidden>
     <div class="band hud-top">
       <div class="prog"><div class="prog-fill" id="progFill"></div></div>
@@ -183,11 +204,12 @@ kbd{font-family:var(--body);font-weight:600;font-size:13px;background:var(--fros
     <div class="card">
       <p class="eyebrow">90° 00′ S · Polo Sur</p>
       <h2>El tesoro</h2>
-      <p class="lede">Dentro del cofre hay dos pergaminos. Cada uno lee la letra de una manera distinta. ¿Cuál quieres abrir?</p>
+      <p class="lede" id="endLede">Dentro del cofre hay dos pergaminos. Cada uno lee la letra de una manera distinta. ¿Cuál quieres abrir?</p>
       <div class="choice">
         <button id="btnRead1" class="primary"><small>Lectura 1</small><b>Análisis general</b></button>
-        <button id="btnRead2" class="read-b"><small>Lectura 2</small><b>La historia concreta</b></button>
+        <button id="btnRead2" class="read-b"><small id="read2Kicker">Lectura 2</small><b><svg class="lock" viewBox="0 0 12 14" aria-hidden="true"><rect x="1" y="6" width="10" height="7.5" rx="1.2" fill="currentColor"/><path d="M3.3 6V4.3a2.7 2.7 0 0 1 5.4 0V6" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>La historia concreta</b></button>
       </div>
+      <p class="note lock-note" id="lockNote" hidden>El segundo pergamino está sellado. Se abre al llegar al Polo jugando, sin el modo paseo, y luego queda abierto en este dispositivo.</p>
       <dl class="stats">
         <div><dt>Cartas</dt><dd id="stNotes">0/0</dd></div>
         <div><dt>Giros perfectos</dt><dd id="stPerf">0%</dd></div>
@@ -215,7 +237,7 @@ kbd{font-family:var(--body);font-weight:600;font-size:13px;background:var(--fros
 'use strict';
 const LEVEL={"period":0.408163,"offset":0.05,"turns":[3.315,4.948,6.581,8.213,9.846,11.479,13.111,14.744,15.56,16.377,17.193,18.009,18.826,19.234,19.642,20.458,21.274,22.091,22.499,22.907,23.723,24.54,25.356,26.172,26.581,26.989,27.805,28.621,29.03,29.438,30.254,31.07,31.887,32.703,33.519,34.336,35.152,35.968,36.785,37.601,38.417,39.234,40.05,40.866,41.683,42.499,43.315,44.132,49.03,49.846,50.662,51.479,51.887,52.295,53.111,53.928,54.744,55.56,56.377,57.193,58.009,58.826,59.642,60.458,61.274,62.091,62.907,63.723,64.54,64.948,65.356,66.172,66.989,67.805,68.621,69.438,70.254,71.07,71.887,72.703,73.519,78.417,79.234,80.05,80.866,81.683,82.499,87.397,88.213,89.03,89.846,90.662,91.479,92.295,93.111,93.928,94.744,95.56,96.377,97.193,98.009,98.826,100.458,101.274,102.091,102.907,103.723,104.54,105.356,106.172,106.989,107.805,108.621,109.438,109.846,110.254,111.07,111.887,112.703,113.519,114.336,115.152,115.968,116.785,117.601,118.417,119.234,120.05,120.866,121.683,122.091,122.499,123.315,124.132,124.948,125.764,126.172,126.581,127.397,128.213,129.03,129.438,129.846,130.662,131.479,132.295,133.111,133.519,133.928,134.744,135.56,136.377,137.193,138.009,143.723,144.54,145.356,150.254,151.07,151.887,152.703,153.519,153.928,154.336,155.152,155.56,155.968,156.377,157.193,157.601,158.009,158.417,160.05,160.866,161.683,163.315,164.132,164.948,165.764,166.581,166.989,168.213,169.03,169.846,170.662,171.479,173.111,174.336,174.744,176.377,177.193,182.091,182.907,183.723,184.54,185.356,186.172,186.989,187.805,192.703,193.519,194.336,195.152,195.56,195.968,196.377,197.601,198.417,198.826,199.234,200.05,200.866,201.683,202.091,202.499,203.315,204.132,204.948,205.764,206.581,207.397,208.213,208.621,209.03,209.846,210.662,211.479,212.295,213.111,213.928,214.744,215.56,216.377,217.193,218.009,218.826,219.642,220.05,220.458,220.866,222.091,222.907,223.723,224.54,224.948,225.356,226.172,226.989,227.397,227.805,228.621,229.438,230.254,230.662,231.07,231.479,232.295,232.703,233.519,234.336],"ropes":[{"t0":44.948,"t1":48.213,"hops":[44.948,45.764,46.581,47.397]},{"t0":74.336,"t1":77.601,"hops":[74.336,75.152,75.968,76.785]},{"t0":146.172,"t1":149.438,"hops":[146.172,146.989,147.805,148.621]},{"t0":188.621,"t1":191.887,"hops":[188.621,189.438,190.254,191.07]}],"falls":[{"t0":84.948,"t1":86.172},{"t0":140.866,"t1":142.091},{"t0":179.642,"t1":180.866}],"dark":{"t0":99.642,"t1":106.989},"tEnd":238.417,"lyrics":[[15.52,"Ya nada tiene sentido"],[19.2,"Qué banal y qué vacío"],[22.32,"Me parece todo lo que pienso"],[26.42,"Todo lo que digo"],[28.86,"Una y otra vez lo mismo"],[31.92,"Persiguiendo sombras de recuerdos"],[35.22,"Viviendo de ecos de sueños muertos"],[38.48,"¿Se perderá todo en el olvido?"],[45.02,"Estoy colgando de un hilo"],[48.58,"Solo ante mil peligros"],[51.97,"Mirándome el ombligo"],[54.7,"¿Será este mi destino?"],[57.86,"Que solo yo tengo la culpa"],[61.08,"Hundiéndome más rápido"],[64.8,"Esforzándome al máximo"],[66.86,"En cavar mi propia tumba"],[71.04,"Ya nada tiene sentido"],[74.44,"Estoy colgando de un hilo"],[77.51,"Mirando de frente al abismo"],[81.5,"¿Por qué no estoy contigo?"],[86.42,"Mirando de frente al abismo"],[89.6,"Jamás me había sentido tan vivo"],[93.07,"Jamás había estado tan perdido"],[96.45,"¿Es hora de darme por vencido?"],[99.56,"Ya no sé si es de día o de noche"],[102.48,"No recuerdo la última vez que he reído"],[106.8,"Tus susurros en mi oído"],[109.59,"Siempre marcaron el norte"],[113.42,"¿Por qué no estoy contigo?"],[117.6,"Vagando por el infinito, por el desierto"],[122.16,"Atrapado en un infierno de hielo"],[126.02,"¿Todo esto ha concluido?"],[129.22,"Y ahora ya estoy cansado"],[133.32,"Yo ya di el último paso"],[136.33,"Aquí me quedaré esperando"],[139.13,"Al veintinueve de marzo"],[142.46,"Ya nada tiene sentido"],[146.26,"Estoy colgando de un hilo"],[149.54,"Mirando de frente al abismo"],[153.42,"¿Por qué no estoy contigo?"],[158.26,"A veces siento que la tristeza"],[160.98,"Me invade y lo engulle todo"],[163.99,"Y a veces no"],[166.72,"Lo segundo es lo peor"],[170.56,"Lo veo claro con la distancia"],[174.08,"Ahora sé que esta nostalgia"],[177.25,"Es felicidad en diferido"],[180.72,"¿Por qué me siento tan vacío?"],[185.2,"Ya nada tiene sentido"],[188.73,"Estoy colgando de un hilo"],[191.92,"Mirando de frente al abismo"],[195.67,"¿Por qué no estás conmigo?"],[198.62,"He encontrado un rinconcito"],[201.92,"Donde descansar tranquilo"],[205.03,"Y poco a poco las luces se apagan"],[208.56,"Y me voy quedando dormido"],[212.19,"Te he escrito unas palabras"],[216.3,"Sin saber si jamás te llegarán"],[220.3,"¿Por qué no estás conmigo?"],[224.48,"Te pienso dormido"],[227.83,"Te sueño despierto"],[231.04,"¿Por qué de repente"],[233.61,"Siento tanto frío?"]]};
 const INTRO_TEXT=[
-"La gracia de la letra de esta canción es que funciona en dos capas. Una primera, que nos habla sobre las decisiones que tomamos, muchas de las cuales serán irreversibles, y no somos conscientes de ello mientras las tomamos. Del sentimiento de culpa, de la impotencia y de lo difícil que es ser consciente de la felicidad cuando la estamos viviendo.",
+"La gracia de la letra de esta canción es que funciona en dos capas. Una primera que nos habla sobre las decisiones que tomamos: muchas de ellas serán irreversibles. Del sentimiento de culpa, de la impotencia y de lo difícil que es ser consciente de la felicidad cuando la estamos viviendo.",
 "Pero también nos explica, en una segunda interpretación de la letra, una historia muy concreta. Para llegar al fondo de la cuestión deberás completar el juego y llegar al tesoro final."
 ];
 const READINGS={
@@ -223,19 +245,11 @@ general:{
  kicker:"Lectura 1",
  title:"Análisis general",
  blocks:[
-  {p:["Esta letra transmite sobre todo duelo, pérdida, nostalgia y desesperanza por la ausencia de una persona querida. El narrador se encuentra en un estado emocional muy frágil, como si hubiera perdido el sentido de su vida después de una decisión irreversible.","Algunos de los temas principales son:"]},
-  {h:"1. La pérdida de sentido",p:["Desde el primer verso, «Ya nada tiene sentido», queda claro que el protagonista siente que todo lo que hacía, pensaba o decía ha perdido valor. Vive atrapado en recuerdos y en sueños que ya no pueden volver."]},
-  {h:"2. La culpa y la autodestrucción",p:["En la segunda estrofa aparece una fuerte autoculpabilización:"],lyr:["Que solo yo tengo la culpa","En cavar mi propia tumba"],p2:["Siente que es responsable de su situación y que sus propias decisiones lo han llevado al sufrimiento."]},
-  {h:"3. La persona ausente como guía vital",p:["La persona a quien se dirige era su punto de referencia:"],lyr:["Tus susurros en mi oído","Siempre marcaron el norte"],p2:["Sin ella, está desorientado, perdido entre el día y la noche, sin saber hacia dónde ir."]},
-  {h:"4. La proximidad al abismo",p:["La imagen del «abismo» aparece varias veces. Simboliza una depresión profunda, la renuncia a seguir luchando, pensamientos relacionados con la muerte."],lyr:["Mirando de frente al abismo"],p2:["Cuando lo dice, se está enfrentando a su dolor más profundo."]},
-  {h:"5. La nostalgia como felicidad diferida",p:["El puente:"],lyr:["Ahora sé que esta nostalgia","Es felicidad en diferido"],p2:["Quiere decir que lo que ahora siente como añoranza es, en realidad, el recuerdo de una felicidad que existió. La nostalgia es la prueba de que vivió momentos valiosos que en su momento no supo valorar como tales."]},
-  {h:"6. Una posible lectura de despedida definitiva",p:["Los últimos versos son cada vez más oscuros:"],lyr:["He encontrado un rinconcito","Donde descansar tranquilo","Y poco a poco las luces se apagan","Y me voy quedando dormido"],p2:["Estas imágenes se interpretan metafóricamente como el cansancio emocional, pero también sugieren una despedida definitiva. El hecho de que mencione una fecha concreta («veintinueve de marzo») refuerza la sensación de que espera un momento muy significativo relacionado con la persona ausente."]},
-  {h:"Interpretación global",p:["La canción narra el proceso de alguien que ha perdido a una persona muy importante y que se encuentra hundido entre la culpa, la nostalgia y la soledad. El gran interrogante que atraviesa toda la letra es:"],lyr:["¿Por qué no estás conmigo?"],p2:["Todo gira alrededor de esta ausencia. Más que una canción de amor convencional, es una reflexión sobre el vacío que deja alguien cuando desaparece de nuestra vida y sobre la lucha por encontrar sentido después de esa pérdida."]},
-  {h:"De «¿Por qué no estoy contigo?» a «¿Por qué no estás conmigo?»",p:["El cambio altera sutilmente el significado de la pregunta.","«¿Por qué no estoy contigo?» pone el foco en el narrador. La pregunta implícita es: ¿qué me ha pasado para que yo no esté a tu lado? Aquí todavía hay una cierta responsabilidad propia, que enlaza con versos como «Que solo yo tengo la culpa» o «En cavar mi propia tumba». El protagonista se pregunta qué ha hecho mal, por qué ha acabado separado de esta persona. La causa parece estar en él mismo.","«¿Por qué no estás conmigo?», en cambio, desplaza el foco a la otra persona. Ahora la pregunta es: ¿por qué tú no estás aquí? Ya no habla tanto de su incapacidad para llegar hasta ella, sino de la ausencia del otro. Es una pregunta más dolorosa porque asume que la separación ya es un hecho irreversible.","¿Qué significa este cambio dentro de la historia? Es una evolución emocional. Al principio busca explicaciones («¿Por qué no estoy contigo?») y todavía piensa que podría haber actuado de otra manera. Al final acepta la realidad de la pérdida («¿Por qué no estás conmigo?»): ya no cuestiona tanto sus decisiones, simplemente lamenta la ausencia. Es como pasar de la culpa a la añoranza."]},
+  {p:["Esta canción habla sobre las decisiones que tomamos: sin ser conscientes de ello, muchas de ellas serán irreversibles. Del sentimiento de culpa, de la impotencia y de lo difícil que es vivir la felicidad en el momento en el que somos felices."]},
   {sep:"Análisis por estrofas"},
   {h:"Estrofa 1",lyr:["Ya nada tiene sentido","Qué banal y qué vacío","Me parece todo lo que pienso","Todo lo que digo"],p2:["La canción empieza mostrando un estado de vacío existencial. El protagonista ha perdido la ilusión y percibe sus pensamientos y sus palabras como algo insignificante. Todo lo que antes podía tener valor ahora le parece banal y carente de sentido."]},
   {h:"Estrofa 2",lyr:["Una y otra vez lo mismo","Persiguiendo sombras de recuerdos","Viviendo de ecos de sueños muertos","¿Se perderá todo en el olvido?"],p2:["El protagonista vive atrapado en el pasado. Los recuerdos se comparan con sombras y los sueños con ecos que ya han muerto, imágenes que transmiten la imposibilidad de recuperar lo perdido. La pregunta final expresa el miedo a que incluso estos recuerdos acaben desapareciendo."]},
-  {h:"Estrofa 3",lyr:["Estoy colgando de un hilo","Solo ante mil peligros","Mirándome el ombligo","¿Será este mi destino?"],p2:["Aquí aparece una sensación de fragilidad extrema. Se siente a punto de caer, solo ante las dificultades y demasiado centrado en su propio sufrimiento. Entra en una espiral de pensamientos sobre ello. La pregunta final refleja la duda sobre si este sufrimiento será permanente."]},
+  {h:"Estrofa 3",lyr:["Estoy colgando de un hilo","Solo ante mil peligros","Mirándome el ombligo","¿Será este mi destino?"],p2:["Aquí aparece una sensación de fragilidad extrema. Se siente a punto de caer, solo ante las dificultades y demasiado centrado en su propio sufrimiento. Entra en una espiral de pensamientos sobre ello. La pregunta final refleja la duda sobre si este sufrimiento será permanente y lo acompañará para siempre."]},
   {h:"Estrofa 4",lyr:["Que solo yo tengo la culpa","Hundiéndome más rápido","Esforzándome al máximo","En cavar mi propia tumba"],p2:["Esta estrofa está dominada por la culpa. El protagonista no responsabiliza a nadie más de su dolor y llega a acusarse de estar contribuyendo activamente a su propia destrucción emocional y a la pérdida o separación del ser querido."]},
   {h:"Estribillo",lyr:["Ya nada tiene sentido","Estoy colgando de un hilo","Mirando de frente al abismo","¿Por qué no estoy contigo?"],p2:["El estribillo se construye con el primer verso de cada una de las cuatro estrofas principales de la canción. Este recurso resume toda la historia: la falta de sentido, la fragilidad emocional, la proximidad al abismo y la ausencia de la persona amada. Es el núcleo emocional de la letra."]},
   {h:"Estrofa 5",lyr:["Mirando de frente al abismo","Jamás me había sentido tan vivo","Jamás había estado tan perdido","¿Es hora de darme por vencido?"],p2:["El protagonista se encuentra ante su momento más crítico. Paradójicamente, el contacto directo con el dolor lo hace sentir más vivo que nunca, pero también más perdido. La pregunta final plantea si ha llegado el momento de rendirse."]},
@@ -244,7 +258,7 @@ general:{
   {h:"Estrofa 8",lyr:["Y ahora ya estoy cansado","Yo ya di el último paso","Aquí me quedaré esperando","Al veintinueve de marzo"],p2:["Aparece una sensación de resignación. El protagonista declara que está agotado y que ya ha hecho todo lo que podía hacer. La referencia a una fecha concreta sugiere un recuerdo, una promesa o un momento especialmente significativo relacionado con la persona ausente."]},
   {h:"Estribillo",p:["Después de las reflexiones y los recuerdos, el estribillo vuelve a reunir todas las ideas principales. El dolor sigue siendo el mismo y la pregunta sobre la ausencia de la otra persona sigue sin respuesta."]},
   {h:"Puente 1",lyr:["A veces siento que la tristeza","Me invade y lo engulle todo","Y a veces no","Lo segundo es lo peor"],p2:["Este fragmento muestra una reflexión sobre la tristeza. Cuando el dolor desaparece momentáneamente no llega el alivio, sino una especie de vacío emocional. Sentir tristeza, aunque sea malo, lo hace sentir vivo y humano; pero cuando no siente nada es peor: si no es capaz de sentir tristeza, sabe que algo va muy mal dentro de él, que hay algo roto. Por eso afirma que la segunda situación es todavía peor."]},
-  {h:"Puente 2",lyr:["Lo veo claro con la distancia","Ahora sé que esta nostalgia","Es felicidad en diferido","¿Por qué me siento tan vacío?"],p2:["La distancia le permite entender mejor lo que siente. Llega a la conclusión de que la nostalgia existe porque antes hubo felicidad. A veces, en el día a día, no nos paramos a pensar que estamos viviendo tiempos felices: ir al trabajo, llevar a los niños arriba y abajo, hacer la compra de la semana con la pareja… Solo tiempo después, cuando ya no estamos viviendo esos momentos, aparece la nostalgia por ellos. Es entonces cuando nos damos cuenta, precisamente porque sentimos nostalgia, de que éramos felices. La nostalgia es la felicidad en diferido. A pesar de esta comprensión, sigue sintiéndose profundamente vacío, porque ahora comprende lo feliz que era en aquellos tiempos y que no lo valoró lo suficiente."]},
+  {h:"Puente 2",lyr:["Lo veo claro con la distancia","Ahora sé que esta nostalgia","Es felicidad en diferido","¿Por qué me siento tan vacío?"],p2:["La distancia le permite entender mejor lo que siente. Llega a la conclusión de que la nostalgia existe porque antes hubo felicidad. La alegría es muy escandalosa y la felicidad, más sibilina. La alegría se disfruta en el momento: nos toca la lotería, abrimos una botella de cava y gritamos y cantamos. La felicidad se camufla muy bien en las labores cotidianas. A veces, en el día a día, no nos paramos a pensar que estamos viviendo tiempos felices: ir al trabajo, hacer la compra de la semana, los quebraderos de cabeza de cada día… Solo tiempo después, cuando ya no estamos viviendo esos momentos, aparece la nostalgia por ellos. Es entonces cuando nos damos cuenta, precisamente porque sentimos nostalgia, de que éramos felices. La nostalgia es la felicidad en diferido. A pesar de esta comprensión, sigue sintiéndose profundamente vacío, porque ahora comprende lo feliz que era en aquellos tiempos y que no lo valoró lo suficiente."]},
   {h:"Estribillo final",lyr:["Ya nada tiene sentido","Estoy colgando de un hilo","Mirando de frente al abismo","¿Por qué no estás conmigo?"],p2:["El último verso cambia sutilmente el significado del estribillo: pasa de «¿Por qué no estoy contigo?» a «¿Por qué no estás conmigo?». Al principio preguntaba por qué él no estaba con la otra persona (no estaba todo perdido y tenía esperanza de volver); ahora pregunta por qué la otra persona no está con él. Está en su momento más bajo y la pregunta es retórica: sabe que no podrán estar juntos, pero querría que la otra persona estuviera a su lado en estos momentos tan bajos para hacerle compañía. El foco pasa de su situación personal a la ausencia irreversible del ser querido."]},
   {h:"Outro 1",lyr:["He encontrado un rinconcito","Donde descansar tranquilo","Y poco a poco las luces se apagan","Y me voy quedando dormido"],p2:["Este inicio del outro transmite una sensación de descanso después de un largo sufrimiento. Las luces que se apagan y el hecho de quedarse dormido crean una atmósfera de final, de silencio, y se intuye que la cosa no acabará bien («las luces se apagan», «me voy quedando dormido»)."]},
   {h:"Outro 2",lyr:["Te he escrito unas palabras","Sin saber si jamás te llegarán","¿Por qué no estás conmigo?"],p2:["El protagonista intenta comunicarse por última vez con la persona ausente, pero ni siquiera sabe si su mensaje podrá llegar. La pregunta central reaparece, ahora cargada de resignación y nostalgia."]},
@@ -264,10 +278,10 @@ scott:{
   {h:"Estrofa 5",lyr:["Mirando de frente al abismo","Jamás me había sentido tan vivo","Jamás había estado tan perdido","¿Es hora de darme por vencido?"],p2:["Cuando una persona se enfrenta directamente a la muerte, muchas cosas se vuelven extraordinariamente claras. Scott es más consciente que nunca de su existencia, pero también de que podría estar llegando al final del camino. El miedo a morir en medio de la nada lo hace sentir más vivo que nunca y luchar por volver con vida, pero vaga totalmente perdido por la enorme tundra antártica."]},
   {h:"Estrofa 6",lyr:["Ya no sé si es de día o de noche","No recuerdo la última vez que he reído","Tus susurros en mi oído","Siempre marcaron el norte"],p2:["Este es probablemente uno de los versos que más hay que explicar. En el Polo Sur cualquier dirección es norte. Es el único punto de la Tierra donde ocurre esto. Por eso, cuando dice que sus susurros «siempre marcaron el norte», el significado es doble: su esposa era su brújula emocional y, en aquel lugar donde todos los caminos apuntan al norte, el único norte real que existe para él es volver con ella y con su hijo. La brújula que marca el norte no sirve de nada: todas las direcciones son norte."]},
   {h:"Estrofa 7",lyr:["¿Por qué no estoy contigo?","Vagando por el infinito, por el desierto","Atrapado en un infierno de hielo","¿Todo esto ha concluido?"],p2:["La pregunta central de la canción pasa a ser el inicio de la estrofa. Scott se encuentra literalmente en un desierto de hielo aparentemente infinito. La inmensidad blanca se convierte en una metáfora de la separación y de la imposibilidad de volver atrás. Describe el paisaje por el que transitan, un desierto infinito, y utiliza un oxímoron (el infierno es fuego) «de hielo» como recurso lírico para dar belleza a la imagen. Continúan las dudas crecientes sobre si podrá realmente volver con vida («¿Todo esto ha concluido?»)."]},
-  {h:"Estrofa 8",lyr:["Y ahora ya estoy cansado","Yo ya di el último paso","Aquí me quedaré esperando","Al veintinueve de marzo"],p2:["Este fragmento encaja con los últimos días de la expedición. El agotamiento es absoluto. El 29 de marzo de 1912 es la fecha de la última entrada conocida del diario de Scott, lo que convierte este verso en una referencia directa al momento final de su historia. Scott iba haciendo anotaciones en su diario y escribía cartas a su mujer y a sus seres queridos; la última entrada es del 29 de marzo de 1912.","Ante el intenso frío tienen que decidir si se detienen para refugiarse o siguen avanzando para intentar llegar a un punto de aprovisionamiento que tenían no muy lejos. Les resulta imposible avanzar con la tormenta de nieve y deciden montar la tienda de campaña sabiendo que, si la tormenta no pasa rápido, será su fin. No quedan fuerzas ni comida."]},
+  {h:"Estrofa 8",lyr:["Y ahora ya estoy cansado","Yo ya di el último paso","Aquí me quedaré esperando","Al veintinueve de marzo"],p2:["Este fragmento explica los últimos días de la expedición. El agotamiento es absoluto. El 29 de marzo de 1912 es la fecha de la última entrada conocida del diario de Scott, lo que convierte este verso en una referencia directa al momento final de su historia. Scott iba haciendo anotaciones en su diario y escribía cartas a su mujer y a sus seres queridos; la última entrada es del 29 de marzo de 1912.","Ante el intenso frío tienen que decidir si se detienen para refugiarse o siguen avanzando para intentar llegar a un punto de aprovisionamiento que tenían no muy lejos. Les resulta imposible avanzar con la tormenta de nieve y deciden montar la tienda de campaña sabiendo que, si la tormenta no pasa rápido, será su fin. No quedan fuerzas ni comida."]},
   {h:"Estribillo",p:["Ahora el estribillo ya no habla solo de un explorador. También habla de cualquier persona que ha tomado decisiones que la han alejado de alguien querido y que se pregunta si habría podido actuar de otra manera."]},
   {h:"Puente 1",lyr:["A veces siento que la tristeza","Me invade y lo engulle todo","Y a veces no","Lo segundo es lo peor"],p2:["El puente sirve para introducir dos reflexiones: cuando la tristeza desaparece no siempre llega la paz. A veces llega el vacío. Y el vacío puede ser todavía más terrible porque implica resignación. La tristeza más absoluta es un sentimiento negativo, pero lo sigue haciendo sentir humano y con posibilidades. La ausencia total de sentimientos lo asusta, porque sabe que está completamente vacío, física y emocionalmente, y sabe que eso quiere decir que la muerte está cerca."]},
-  {h:"Puente 2",lyr:["Lo veo claro con la distancia","Ahora sé que esta nostalgia","Es felicidad en diferido","¿Por qué me siento tan vacío?"],p2:["A las puertas de la muerte, Scott comprende qué es realmente importante. La nostalgia existe porque antes hubo amor, felicidad y una vida compartida. A veces, en el día a día, no nos damos cuenta de que somos felices: preparar la cena, una excursión en un día de mucho calor… A veces es tiempo después, cuando sentimos nostalgia, cuando nos damos cuenta de que éramos felices en aquellos momentos. La nostalgia viene a ser el recuerdo de una felicidad que se disfruta en diferido. El dolor de ahora es el precio de haber amado y de haber sido feliz. Se encuentra totalmente vacío: es la resignación final."]},
+  {h:"Puente 2",lyr:["Lo veo claro con la distancia","Ahora sé que esta nostalgia","Es felicidad en diferido","¿Por qué me siento tan vacío?"],p2:["A las puertas de la muerte, Scott comprende qué es realmente importante. La nostalgia existe porque antes hubo amor, felicidad y una vida compartida. A veces, en el día a día, no nos damos cuenta de que somos felices: preparar la cena, arreglar un mueble… A veces es tiempo después, cuando sentimos nostalgia, cuando nos damos cuenta de que éramos felices en aquellos momentos. La nostalgia viene a ser el recuerdo de una felicidad que se disfruta en diferido. El dolor de ahora es el precio de haber amado y de haber sido feliz. Se encuentra totalmente vacío: es la resignación final."]},
   {h:"Estribillo final",lyr:["Ya nada tiene sentido","Estoy colgando de un hilo","Mirando de frente al abismo","¿Por qué no estás conmigo?"],p2:["Aquí se produce el cambio más importante de toda la letra.","Durante toda la canción la pregunta era «¿Por qué no estoy contigo?», es decir, por qué él no está al lado de su esposa y de su hijo.","Al final se transforma en «¿Por qué no estás conmigo?». El foco ya no es su ausencia, sino la de ellos. Es un pequeño cambio gramatical que transforma por completo el significado emocional. Ya no hay esperanza de reencuentro; solo queda el dolor de no poder tenerlos a su lado en los últimos momentos. Es un deseo imposible: su mujer y su hijo no aparecerán por arte de magia, y él lo sabe. Es el lamento de no poder tener cerca a sus seres queridos cuando sabe que está a punto de morir."]},
   {h:"Outro 1",lyr:["He encontrado un rinconcito","Donde descansar tranquilo","Y poco a poco las luces se apagan","Y me voy quedando dormido"],p2:["Estos versos evocan la tienda donde Scott y sus compañeros pasaron sus últimos días. El descanso deja de ser una pausa y se convierte en una metáfora del final («las luces se apagan», «me voy quedando dormido»)."]},
   {h:"Outro 2",lyr:["Te he escrito unas palabras","Sin saber si jamás te llegarán","¿Por qué no estás conmigo?"],p2:["La referencia es casi literal. Scott escribió cartas de despedida a su familia sin saber si alguien las encontraría jamás. La última carta a su mujer empieza con «A mi querida viuda»: en esos momentos finales ya era plenamente consciente de que no saldría vivo de esta aventura. El verso convierte esas cartas en una última conversación imposible."]},
@@ -304,13 +318,13 @@ const BIO=[
 const LK=[ // t, fog/bg, hemiSky, hemiGround, hemiI, sun, sunI
  [-10,0xd6e6ef,0xf2f8ff,0x7f8f7c,0.62,0xfff3df,0.78],[42,0xd8e6ee,0xf2f8ff,0x8a9a8c,0.62,0xfff4e4,0.76],
  [84,0xe1ebf2,0xf5faff,0xa4b6c6,0.64,0xfffaf0,0.72],[112,0xd6e3ee,0xeaf4ff,0x8fa6be,0.62,0xf2f7ff,0.66],
- [122,0xe6ebf0,0xf2f6fa,0xa8b6c4,0.66,0xf4f6fa,0.5],[128,0xdde6ee,0xeef4fa,0x98abbf,0.62,0xf2f6fc,0.6],
+ [122,0xdbe5ee,0xeef4fa,0x98abbf,0.62,0xf2f6fc,0.62],[128,0xd8e3ed,0xeef4fa,0x95a9be,0.62,0xf2f6fc,0.64],
  [140,0xdfe4ea,0xeef2f6,0xb0b8c4,0.66,0xf6f4f0,0.48],[157,0xe5e3ea,0xf6f2f6,0xb2b2c4,0.64,0xffe6d6,0.56],
  [178,0xe6dce4,0xfaeef2,0xaea8c0,0.62,0xffd8c4,0.56],[198,0xcfc8dc,0xe6dcf0,0x8e8cae,0.6,0xffc4ac,0.5],
  [205,0xc6c2d8,0xddd8ee,0x84849f,0.58,0xffbea6,0.44],[214,0x8f97b6,0xaab2d2,0x56607e,0.52,0xffb49c,0.26],
  [234,0x5d6b90,0x7e8fb8,0x343e5a,0.5,0xa9b8ff,0.16],[400,0x55628a,0x7586b2,0x2e3754,0.5,0xa9b8ff,0.14]
 ];
-const WK=[[-10,0.12],[40,0.22],[84,0.4],[112,0.5],[119,0.95],[127,0.6],[134,0.9],[141,0.7],[156,0.45],[180,0.6],[198,0.75],[232,0.45],[400,0.35]];
+const WK=[[-10,0.12],[40,0.22],[84,0.4],[112,0.45],[121.5,0.5],[122.5,0.72],[125.5,0.72],[127.5,0.5],[141,0.5],[156,0.42],[180,0.5],[198,0.6],[232,0.42],[400,0.35]];
 
 /* ---------- utilities ---------- */
 function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
@@ -916,9 +930,9 @@ populate();specials();buildInstances();
 const SNOW=(function(){const n=1500,pos=new Float32Array(n*3),seed=new Float32Array(n*4);for(let i=0;i<n;i++){seed[i*4]=rng();seed[i*4+1]=rng();seed[i*4+2]=rng();seed[i*4+3]=rand(0.6,1.4);}
   const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.BufferAttribute(pos,3));
   const tex=canvasTex(32,32,(x,w,h)=>{const gr=x.createRadialGradient(16,16,0,16,16,15);gr.addColorStop(0,'rgba(255,255,255,1)');gr.addColorStop(0.5,'rgba(255,255,255,.8)');gr.addColorStop(1,'rgba(255,255,255,0)');x.fillStyle=gr;x.fillRect(0,0,w,h);});
-  const m=new THREE.PointsMaterial({color:0xffffff,size:0.16,map:tex,transparent:true,opacity:0.9,depthWrite:false,fog:false});const p=new THREE.Points(g,m);p.frustumCulled=false;scene.add(p);
+  const m=new THREE.PointsMaterial({color:0xffffff,size:0.16,map:tex,transparent:true,opacity:0.9,depthWrite:false,fog:false});const p=new THREE.Points(g,m);p.frustumCulled=false;p.visible=false;
   let drift=0;
-  return{update(c,amt,cx,cy,cz,dt,dim){drift+=dt*(1.2+amt*7);const nAct=Math.floor(n*clamp(amt,0.05,1));g.setDrawRange(0,nAct);m.opacity=0.95*dim;const B=22,Hh=12,wx=IS2,wz=IS2;
+  return{update(c,amt,cx,cy,cz,dt,dim){drift+=dt*(1.2+amt*7);const nAct=Math.floor(n*0.75*clamp(amt,0.05,1));g.setDrawRange(0,nAct);m.opacity=0.8*dim;const B=22,Hh=12,wx=IS2,wz=IS2;
     for(let i=0;i<nAct;i++){const sx=seed[i*4],sy=seed[i*4+1],sz=seed[i*4+2],sp=seed[i*4+3];
       let fx=sx*B*2-B+wx*drift*sp, fz=sz*B*2-B+wz*drift*sp, fy=Hh-((sy*Hh+c*(0.9+amt*1.4)*sp)%Hh);
       fx=((fx+B)%(2*B)+2*B)%(2*B)-B;fz=((fz+B)%(2*B)+2*B)%(2*B)-B;
@@ -932,6 +946,24 @@ const AURORA=(function(){const cv=document.getElementById('aurora'),x=cv.getCont
   update(c,k){if(k<0.01){if(on){cv.style.opacity='0';x.clearRect(0,0,W,H);on=false;}return;}on=true;cv.style.opacity=k.toFixed(3);x.clearRect(0,0,W,H);x.globalCompositeOperation='lighter';
     for(let r=0;r<3;r++){const base=H*(0.32+r*0.14),amp=H*(0.1-r*0.02);for(let px=0;px<=W;px+=3){const y=base+Math.sin(px*0.011+c*0.45+r*2.1)*amp+Math.sin(px*0.029-c*0.7+r)*amp*0.45;const len=H*(0.28+0.2*Math.sin(px*0.017+c*0.9+r*1.7))*(1-r*0.18);x.globalAlpha=(0.55+0.45*Math.sin(px*0.05+c*1.3+r))*(1-r*0.2);x.drawImage(strip,px,y-len,3.2,len);}}
     x.globalAlpha=1;x.globalCompositeOperation='source-over';}};})();
+
+/* ---------- wind-blown snow & storm fog (screen overlay) ---------- */
+const SK=[[-10,0],[38,0],[44,0.1],[84,0.2],[112,0.22],[121.9,0.25],[143.2,0.35],[157,0.28],[180,0.32],[198,0.38],[232,0.3],[400,0.3]];
+function stormK(t){return smooth(121.95,123.0,t)*(1-smooth(142.35,143.5,t));}
+const STORM=(function(){const cv=document.getElementById('storm'),x=cv.getContext('2d');let W=2,H=2,sc=1,on=false;const N=300,F=[],GU=[];
+  for(let i=0;i<N;i++)F.push({x:Math.random(),y:Math.random(),z:0.2+Math.random()*0.8,ph:Math.random()*6.28});
+  for(let i=0;i<6;i++)GU.push({x:Math.random()*1.6-0.3,y:0.1+Math.random()*0.8,r:0.3+Math.random()*0.35,sp:0.5+Math.random()*0.7});
+  return{resize(w,h){sc=Math.min(1,960/Math.max(w,h));W=cv.width=Math.max(2,Math.round(w*sc));H=cv.height=Math.max(2,Math.round(h*sc));},
+  update(c,dt,amt,storm,dim){if(amt<0.01){if(on){x.clearRect(0,0,W,H);on=false;}return;}on=true;x.clearRect(0,0,W,H);
+    const gust=1+0.45*Math.sin(c*0.9)+0.25*Math.sin(c*2.7+1);const wind=(0.08+0.72*storm)*gust,fall=0.15+0.12*storm;const U=Math.max(W,H)/700;
+    if(storm>0.01){const g=x.createLinearGradient(0,0,0,H);g.addColorStop(0,`rgba(234,240,246,${0.4*storm})`);g.addColorStop(0.5,`rgba(234,240,246,${0.05*storm})`);g.addColorStop(1,`rgba(234,240,246,${0.2*storm})`);x.fillStyle=g;x.fillRect(0,0,W,H);
+      for(const G of GU){G.x+=dt*G.sp*wind*0.45;if(G.x>1.45){G.x=-0.45;G.y=0.08+Math.random()*0.84;}const cx=G.x*W,cy=G.y*H,r=G.r*Math.max(W,H);const rg=x.createRadialGradient(cx,cy,0,cx,cy,r);rg.addColorStop(0,`rgba(240,245,250,${0.3*storm})`);rg.addColorStop(1,'rgba(240,245,250,0)');x.fillStyle=rg;x.fillRect(cx-r,cy-r,2*r,2*r);}}
+    const n=Math.floor(N*clamp(amt,0,1));x.lineCap='round';
+    for(let i=0;i<n;i++){const f=F[i],z=f.z;f.x+=dt*(wind*z*1.25+0.025*Math.sin(c*2+f.ph));f.y+=dt*(fall*z*1.5+0.03*Math.sin(c*1.3+f.ph));
+      if(f.x>1.06){f.x=-0.06;f.y=Math.random();}if(f.y>1.06){f.y=-0.06;f.x=Math.random();}
+      const px=f.x*W,py=f.y*H,sz=(1.1+3.6*z)*U;const len=Math.min(30*U,wind*z*W*0.02)+0.01;const dx=len,dy=Math.min(len*1.2,len*fall/Math.max(0.05,wind))+0.01;
+      x.strokeStyle=`rgba(55,75,100,${(0.12+0.1*z)*dim})`;x.lineWidth=sz+1.4*U;x.beginPath();x.moveTo(px+U,py+U);x.lineTo(px-dx+U,py-dy+U);x.stroke();
+      x.strokeStyle=`rgba(255,255,255,${(0.6+0.38*z)*dim})`;x.lineWidth=sz;x.beginPath();x.moveTo(px,py);x.lineTo(px-dx,py-dy);x.stroke();}}};})();
 
 /* ---------- particles & footprints ---------- */
 const PMAX=800;const pMesh=new THREE.InstancedMesh(GEO.ico0,new THREE.MeshBasicMaterial({color:0xffffff}),PMAX);pMesh.frustumCulled=false;pMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);scene.add(pMesh);
@@ -970,14 +1002,14 @@ async function loadAudio(){
 }
 
 /* ---------- game state ---------- */
-const G={state:'title',auto:false,cap:true,k:0,next:0,errx:0,errz:0,errT:0,controlFrom:0,fail:null,attempts:1,perfect:0,judged:0,lastBiome:-1,winClock:0,lastT:0,pausedT:0,yaw:Math.PI/2,dbgT:null,hinted:{}};
+const G={state:'title',auto:false,usedAuto:false,cap:true,k:0,next:0,errx:0,errz:0,errT:0,controlFrom:0,fail:null,attempts:1,perfect:0,judged:0,lastBiome:-1,winClock:0,lastT:0,pausedT:0,yaw:Math.PI/2,dbgT:null,hinted:{}};
 let clock=0;
 const CH={x:0,y:0.12,z:0,dx:1,dz:0,mode:'idle',lift:0};
 function evBefore(t){let lo=0,hi=EV.length;while(lo<hi){const m=(lo+hi)>>1;if(EV[m].t<t)lo=m+1;else hi=m;}return lo;}
 function turnsBefore(t){let lo=0,hi=TURNS.length;while(lo<hi){const m=(lo+hi)>>1;if(TURNS[m]<t)lo=m+1;else hi=m;}return lo;}
 function resetRun(tStart){G.k=turnsBefore(tStart);G.next=evBefore(tStart);G.errx=G.errz=0;G.errT=tStart;G.fail=null;resetTrail();stars.visible=false;hero.body.rotation.set(0,0,0);G.lastT=tStart;const S=SEG[G.k];G.yaw=Math.atan2(S.dx,S.dz);G.lastBiome=-1;
   for(const R of ROPES){R.jumpT=null;R.hopTimes=[];if(tStart>R.t0-0.05&&tStart<R.t1+0.5){R.jumpT=R.t0;}}}
-function playFrom(tStart,ctrl){resetRun(tStart);G.endShown=false;camInit=false;G.controlFrom=ctrl;G.state='playing';hideAll();showHud(true);playAudio(tStart);if(CHEST){CHEST.lid.rotation.x=0;CHEST.glow.material.opacity=0;CHEST.scrolls.forEach(s=>s.visible=false);}chestLight.intensity=0;}
+function playFrom(tStart,ctrl){if(typeof TTS!=='undefined')TTS.stop();resetRun(tStart);G.endShown=false;camInit=false;G.controlFrom=ctrl;G.state='playing';hideAll();showHud(true);playAudio(tStart);if(CHEST){CHEST.lid.rotation.x=0;CHEST.glow.material.opacity=0;CHEST.scrolls.forEach(s=>s.visible=false);}chestLight.intensity=0;}
 function doEvent(i,tau,judged){const e=EV[i];G.next=i+1;let d=tau-e.t;
   if(e.kind==='turn'){const j=e.j,oS=SEG[j],nS=SEG[j+1];G.errx=V*d*(oS.dx-nS.dx);G.errz=V*d*(oS.dz-nS.dz);G.errT=tau;G.k=j+1;}
   else{const R=ROPES[e.r];if(e.h===0){R.jumpT=tau;R.hopTimes=[];}else R.hopTimes.push(tau);}
@@ -999,7 +1031,10 @@ function tap(){
 }
 function inDark(t){return t>=DARK.t0-0.2&&t<=DARK.t1+0.3;}
 function startFail(t,kind,dx,dz){charPos(t,CH);if(dx===undefined){dx=CH.dx;dz=CH.dz;}G.state='failing';G.fail={t,kind,x:CH.x,z:CH.z,dx,dz,y:CH.y,lift:CH.lift,clock:0,start:performance.now(),shown:false};stopAudio(0.35);G.yawTarget=Math.atan2(dx,dz);}
-function startWin(){G.state='win';G.winClock=0;G.winStart=performance.now();}
+let unlocked2=false;try{unlocked2=localStorage.getItem('cdh.l2')==='1';}catch(e){}
+function startWin(){G.state='win';G.winClock=0;G.winStart=performance.now();G.endShown=false;if(!G.auto&&!G.usedAuto){unlocked2=true;try{localStorage.setItem('cdh.l2','1');}catch(e){}}}
+function renderEnd(){const L=!unlocked2;const b=$('btnRead2');b.classList.toggle('locked',L);b.setAttribute('aria-disabled',L?'true':'false');$('read2Kicker').textContent=L?'Lectura 2 · sellada':'Lectura 2';
+  $('endLede').textContent=L?'Dentro del cofre hay dos pergaminos, pero el segundo sigue sellado. Puedes abrir el primero.':'Dentro del cofre hay dos pergaminos. Cada uno lee la letra de una manera distinta. ¿Cuál quieres abrir?';$('lockNote').hidden=!L;}
 function lastCheckpoint(t){let c=0;for(const cp of CHECKPOINTS)if(cp<=t-0.4)c=cp;return c;}
 function latStr(p){const v=77+38/60+(90-77-38/60)*clamp(p,0,1);let d=Math.floor(v),m=Math.round((v-d)*60);if(m===60){d++;m=0;}return d+'° '+String(m).padStart(2,'0')+'′ S';}
 
@@ -1013,19 +1048,19 @@ let secTimer=0;function showSection(name){ui.section.textContent=name;ui.section
 let hintTimer=0;function showHint(txt,ms){ui.hint.textContent=txt;ui.hint.classList.add('on');clearTimeout(hintTimer);hintTimer=setTimeout(()=>ui.hint.classList.remove('on'),ms||2400);}
 function judge(txt,perf){const el=document.createElement('div');el.className='judge'+(perf?' perfect':'');el.textContent=txt;_v.set(CH.x,CH.y+2.4,CH.z).project(camera);el.style.left=((_v.x+1)/2*100)+'%';el.style.top=((1-_v.y)/2*100)+'%';ui.judge.appendChild(el);setTimeout(()=>el.remove(),720);}
 function syncOpts(){$('optAuto').checked=$('optAuto2').checked=G.auto;$('optCap').checked=$('optCap2').checked=G.cap;ui.auto.hidden=!G.auto;$('syncVal').textContent=(syncMs>0?'+':'')+syncMs+' ms';}
-for(const id of['optAuto','optAuto2'])$(id).addEventListener('change',e=>{G.auto=e.target.checked;syncOpts();});
+for(const id of['optAuto','optAuto2'])$(id).addEventListener('change',e=>{G.auto=e.target.checked;if(G.auto&&G.state!=='title'&&G.state!=='win')G.usedAuto=true;syncOpts();});
 for(const id of['optCap','optCap2'])$(id).addEventListener('change',e=>{G.cap=e.target.checked;syncOpts();});
 $('syncMinus').addEventListener('click',()=>{syncMs=clamp(syncMs-10,-250,250);try{localStorage.setItem('cdh.sync',syncMs);}catch(e){}syncOpts();});
 $('syncPlus').addEventListener('click',()=>{syncMs=clamp(syncMs+10,-250,250);try{localStorage.setItem('cdh.sync',syncMs);}catch(e){}syncOpts();});
 function resetStats(){G.attempts=1;G.perfect=0;G.judged=0;G.hinted={};for(const n of NOTES){n.got=false;n.g.visible=true;}}
-function startFromZero(){if(!abuf)return;actx.resume();resetStats();playFrom(0,0);showSection(BIO[0].name);if(!G.auto)setTimeout(()=>{if(G.state==='playing')showHint('Toca la pantalla al ritmo para girar en cada esquina',3000);},900);}
+function startFromZero(){if(!abuf)return;actx.resume();resetStats();G.usedAuto=G.auto;playFrom(0,0);showSection(BIO[0].name);if(!G.auto)setTimeout(()=>{if(G.state==='playing')showHint('Toca la pantalla al ritmo para girar en cada esquina',3000);},900);}
 $('btnPlay').addEventListener('click',startFromZero);
 $('btnRestartP').addEventListener('click',startFromZero);
 $('btnAgain').addEventListener('click',()=>{G.auto=false;syncOpts();startFromZero();});
 $('btnWatch').addEventListener('click',()=>{G.auto=true;syncOpts();startFromZero();});
-$('btnResume').addEventListener('click',()=>{actx.resume();const t=G.pausedT;playFrom(Math.max(0,t-LEAD),t);});
-$('btnRetryCp').addEventListener('click',()=>{actx.resume();G.attempts++;const cp=lastCheckpoint(G.fail?G.fail.t:0);playFrom(Math.max(0,cp-LEAD),cp);});
-$('btnRetry0').addEventListener('click',()=>{actx.resume();G.attempts++;for(const n of NOTES){n.got=false;n.g.visible=true;}playFrom(0,0);showSection(BIO[0].name);});
+$('btnResume').addEventListener('click',()=>{actx.resume();if(G.auto)G.usedAuto=true;const t=G.pausedT;playFrom(Math.max(0,t-LEAD),t);});
+$('btnRetryCp').addEventListener('click',()=>{actx.resume();G.attempts++;if(G.auto)G.usedAuto=true;const cp=lastCheckpoint(G.fail?G.fail.t:0);playFrom(Math.max(0,cp-LEAD),cp);});
+$('btnRetry0').addEventListener('click',()=>{actx.resume();G.attempts++;G.usedAuto=G.auto;for(const n of NOTES){n.got=false;n.g.visible=true;}playFrom(0,0);showSection(BIO[0].name);});
 $('btnPause').addEventListener('click',e=>{e.stopPropagation();pause();});
 function pause(){if(G.state!=='playing')return;G.pausedT=songTime();stopAudio(0.08);G.state='paused';syncOpts();ui.pause.hidden=false;}
 document.addEventListener('visibilitychange',()=>{if(document.hidden)pause();});
@@ -1034,19 +1069,46 @@ window.addEventListener('keydown',e=>{if(e.code==='Space'||e.code==='ArrowUp'||e
 syncOpts();
 /* papyrus */
 const esc=s=>s.replace(/&/g,'&amp;').replace(/</g,'&lt;');
-function openScroll(key){const R=READINGS[key],other=key==='general'?'scott':'general';let h=`<p class="kicker">${R.kicker}</p><h2 id="scrollTitle">${esc(R.title)}</h2><div class="rule"></div>`;
+/* read-aloud with the device's Spanish voice */
+const TTS=(function(){const S=window.speechSynthesis,ok=!!(S&&window.SpeechSynthesisUtterance);let voice=null,rate=1.25,segs=[],idx=0,playing=false,token=0,lastEl=null,hold=[],failed=false;
+  try{const r=parseFloat(localStorage.getItem('cdh.rate'));if(r>=0.8&&r<=2)rate=r;}catch(e){}
+  function pickVoice(){const all=S.getVoices();const vs=all.filter(v=>/^es([-_]|$)/i.test(v.lang));if(!vs.length)return null;const sc=v=>(/es[-_]ES/i.test(v.lang)?4:0)+(/google|natural|neural|enhanced|premium|siri|m[oó]nica|jorge|elvira|[aá]lvaro|luc[ií]a|paulina|dalia|helena|pablo/i.test(v.name)?3:0)+(v.localService?1:0);return vs.sort((a,b)=>sc(b)-sc(a))[0];}
+  if(ok){voice=pickVoice();try{S.addEventListener('voiceschanged',()=>{voice=pickVoice();refresh();});}catch(e){S.onvoiceschanged=()=>{voice=pickVoice();refresh();};}}
+  const norm=s=>s.replace(/\n+/g,'. ').replace(/[«»"“”]/g,'').replace(/−\s?(\d)/g,'menos $1').replace(/\s?°\s?C\b/g,' grados').replace(/(\d{1,2})\/(\d{1,2})\/(\d{4})/g,'$1 del $2 de $3').replace(/…/g,'.').replace(/([?!])\.\s/g,'$1 ').replace(/\s+/g,' ').trim();
+  function build(els){segs=[];for(const el of els){const txt=norm(el.innerText||el.textContent);const parts=txt.split(/(?<=[.!?;:])\s+/);let cur='';for(const p of parts){if(cur&&(cur+' '+p).length>220){segs.push({el,text:cur});cur=p;}else cur=cur?cur+' '+p:p;}if(cur)segs.push({el,text:cur});}idx=0;}
+  function mark(){for(const s2 of segs)s2.el.classList.remove('speaking');const el=playing&&segs[idx]?segs[idx].el:null;if(el){el.classList.add('speaking');if(el!==lastEl){try{el.scrollIntoView({block:'center',behavior:'smooth'});}catch(e){}}}lastEl=el;}
+  function speakFrom(i){const my=++token;S.cancel();if(i>=segs.length){finish();return;}idx=i;mark();refresh();
+    const u=new SpeechSynthesisUtterance(segs[i].text);u.lang=voice?voice.lang:'es-ES';if(voice)u.voice=voice;u.rate=rate;u.pitch=1;
+    u.onend=()=>{if(my===token&&playing)speakFrom(idx+1);};u.onerror=e=>{if(my!==token||!playing)return;const er=e&&e.error;if(er==='interrupted'||er==='canceled')return;if(er==='text-too-long'){speakFrom(idx+1);return;}failed=true;pause();};
+    hold=[u];setTimeout(()=>{if(my===token&&playing)S.speak(u);},S.speaking?60:0);}
+  function duck(on){if(wind&&actx){try{wind.g.gain.setTargetAtTime(on?0.015:0.09,actx.currentTime,0.3);}catch(e){}}}
+  function play(){if(!ok||!segs.length)return;failed=false;playing=true;duck(true);speakFrom(idx>=segs.length?0:idx);}
+  function pause(){playing=false;token++;S.cancel();mark();refresh();duck(false);}
+  function stop(){playing=false;token++;if(ok)S.cancel();idx=0;mark();refresh();duck(false);}
+  function finish(){playing=false;idx=0;mark();refresh();duck(false);}
+  function setRate(r){rate=r;try{localStorage.setItem('cdh.rate',r);}catch(e){}if(playing)speakFrom(idx);refresh();}
+  function mins(){let w=0;for(let k=idx;k<segs.length;k++)w+=segs[k].text.split(' ').length;return Math.max(1,Math.round(w/(165*rate)));}
+  function refresh(){const pb=document.getElementById('vPlay');if(!pb)return;pb.setAttribute('aria-pressed',playing?'true':'false');pb.querySelector('span').textContent=playing?'Pausa':(idx>0?'Seguir':'Escuchar');
+    pb.querySelector('.ico-play').style.display=playing?'none':'';pb.querySelector('.ico-pause').style.display=playing?'':'none';
+    document.getElementById('vStop').disabled=!playing&&idx===0;document.querySelectorAll('#vRates button').forEach(b=>b.setAttribute('aria-pressed',String(parseFloat(b.dataset.r)===rate)));
+    const n=document.getElementById('vNote');if(n)n.textContent=failed?'No se ha podido usar la voz del dispositivo':(ok&&S.getVoices().length&&!voice)?'Este dispositivo no tiene voz en castellano':'≈ '+mins()+' min';}
+  return{ok,build,play,pause,stop,setRate,refresh,get playing(){return playing;},dbg(){return [idx,segs.length,failed];}};})();
+function openScroll(key){TTS.stop();const R=READINGS[key],other=key==='general'?'scott':'general';let h=`<p class="kicker">${R.kicker}</p><h2 id="scrollTitle">${esc(R.title)}</h2><div class="rule"></div>`;
+  if(TTS.ok)h+=`<div class="voice"><button class="vplay" id="vPlay" aria-pressed="false"><svg class="ico-play" viewBox="0 0 14 14" aria-hidden="true"><path d="M3 1.5v11l9-5.5z" fill="currentColor"/></svg><svg class="ico-pause" viewBox="0 0 14 14" aria-hidden="true" style="display:none"><path d="M3 1.5h3v11H3zM8 1.5h3v11H8z" fill="currentColor"/></svg><span>Escuchar</span></button><button class="vstop" id="vStop" aria-label="Detener la lectura" disabled><svg viewBox="0 0 14 14" aria-hidden="true"><rect x="2.5" y="2.5" width="9" height="9" fill="currentColor"/></svg></button><div class="vrates" id="vRates" role="group" aria-label="Velocidad de lectura">${[1,1.25,1.5,1.75].map(r=>`<button data-r="${r}" aria-pressed="false">${String(r).replace('.',',')}×</button>`).join('')}</div><span class="vnote" id="vNote"></span></div>`;
   for(const b of R.blocks){if(b.sep){h+=`<p class="sep">${esc(b.sep)}</p><div class="rule"></div>`;continue;}if(b.h)h+=`<h3>${esc(b.h)}</h3>`;for(const p of b.p||[])h+=`<p>${esc(p)}</p>`;if(b.lyr)h+=`<p class="lyr">${b.lyr.map(esc).join('<br>')}</p>`;for(const p of b.p2||[])h+=`<p>${esc(p)}</p>`;}
-  h+=`<div class="sheet-foot"><button class="primary" id="btnOther">${other==='scott'?'Leer la lectura 2':'Leer la lectura 1'}</button><button class="secondary" id="btnClose">Volver al cofre</button></div>`;
+  const otherOk=other==='general'||unlocked2;h+=`<div class="sheet-foot">${otherOk?`<button class="primary" id="btnOther">${other==='scott'?'Leer la lectura 2':'Leer la lectura 1'}</button>`:'<p class="locked-txt">La lectura 2 se abre al llegar al Polo jugando, sin el modo paseo.</p>'}<button class="secondary" id="btnClose">Volver al cofre</button></div>`;
   $('sheetIn').innerHTML=h;$('sheet').scrollTop=0;ui.end.hidden=true;ui.scroll.hidden=false;const pp=$('papyrus');pp.classList.remove('open');void pp.offsetWidth;requestAnimationFrame(()=>pp.classList.add('open'));
-  $('btnOther').addEventListener('click',()=>openScroll(other));$('btnClose').addEventListener('click',closeScroll);setTimeout(()=>{try{$('btnClose').focus({preventScroll:true});}catch(e){}},950);}
-function closeScroll(){ui.scroll.hidden=true;ui.end.hidden=false;}
+  if(TTS.ok){TTS.build([...$('sheetIn').querySelectorAll('h2,h3,p:not(.kicker)')]);$('vPlay').addEventListener('click',()=>{TTS.playing?TTS.pause():TTS.play();});$('vStop').addEventListener('click',()=>TTS.stop());
+    $('vRates').querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>TTS.setRate(parseFloat(b.dataset.r))));TTS.refresh();}
+  if($('btnOther'))$('btnOther').addEventListener('click',()=>openScroll(other));$('btnClose').addEventListener('click',closeScroll);setTimeout(()=>{try{$('btnClose').focus({preventScroll:true});}catch(e){}},950);}
+function closeScroll(){TTS.stop();ui.scroll.hidden=true;ui.end.hidden=false;}
 $('btnRead1').addEventListener('click',()=>openScroll('general'));
-$('btnRead2').addEventListener('click',()=>openScroll('scott'));
+$('btnRead2').addEventListener('click',()=>{if(!unlocked2){const n=$('lockNote');n.hidden=false;n.classList.remove('flash');void n.offsetWidth;n.classList.add('flash');return;}openScroll('scott');});
 
 /* ---------- camera ---------- */
 const camT=new THREE.Vector3();let camPan=0,camInit=false,camElev=0.75,camOrbit=0;const UVEC=new THREE.Vector3(IS2,0,-IS2);
 let vw=1,vh=1;
-function resize(){const r=$('app').getBoundingClientRect();vw=Math.max(1,r.width);vh=Math.max(1,r.height);renderer.setSize(vw,vh,false);camera.aspect=vw/vh;camera.updateProjectionMatrix();AURORA.resize(vw,vh);}
+function resize(){const r=$('app').getBoundingClientRect();vw=Math.max(1,r.width);vh=Math.max(1,r.height);renderer.setSize(vw,vh,false);camera.aspect=vw/vh;camera.updateProjectionMatrix();AURORA.resize(vw,vh);STORM.resize(vw,vh);}
 window.addEventListener('resize',resize);resize();
 let shake=0;
 function updateCamera(dt,t,zoom){
@@ -1055,7 +1117,7 @@ function updateCamera(dt,t,zoom){
   let elevT=0.75;for(const f of FALLS){const k=smooth(f.t0-1.2,f.t0-0.2,t)*(1-smooth(f.t1+0.8,f.t1+2.2,t));elevT=Math.max(elevT,lerp(0.75,1.06,k));}
   for(const R of ROPES){const k=smooth(R.t0-1.6,R.t0-0.4,t)*(1-smooth(R.t1,R.t1+1.2,t));elevT=Math.max(elevT,lerp(0.75,0.92,k));}
   let ahead=portrait?(D*2*tanH)*0.16/Math.sin(camElev):2.4;if(G.state==='title')ahead=portrait?-(D*2*tanH)*0.2/Math.sin(camElev):-1.2;
-  if(G.state==='win')ahead=-(D*lerp(1,0.5,zoom)*2*tanH)*(portrait?0.26:0.22)/Math.sin(camElev);
+  if(G.state==='win')ahead=-(D*lerp(1,0.5,zoom)*2*tanH)*(portrait?0.31:0.22)/Math.sin(camElev);
   let wP=wC;if(portrait&&G.state==='playing'){for(const r of SIGNS){if(r.act>0.3){const sw=toW(r.grp.position.x,r.grp.position.z);wP=wC+clamp((sw-wC)*0.3,-2.4,2.4)*r.act;break;}}}
   camPan+=(wP-camPan)*(1-Math.exp(-dt*1.5));if(!camInit)camPan=wP;
   const back=new THREE.Vector3(-UVEC.x,0,-UVEC.z).applyAxisAngle(THREE.Object3D.DefaultUp,camOrbit);
@@ -1066,22 +1128,21 @@ function updateCamera(dt,t,zoom){
   D*=lerp(1,0.5,zoom);
   let sh=0;for(const f of FALLS){const d=t-f.t0;if(d>-0.9&&d<1.6)sh=Math.max(sh,(1-Math.abs(d-0.2)/1.4));}shake=G.state==='playing'?clamp(sh,0,1)*0.12:0;
   camera.position.set(camT.x+back.x*Math.cos(camElev)*D+Math.sin(clock*41)*shake,camT.y+Math.sin(camElev)*D+Math.sin(clock*37)*shake,camT.z+back.z*Math.cos(camElev)*D+Math.cos(clock*43)*shake);camera.lookAt(camT);
-  const fk=lerp(1,0.62,blizzardK(t));scene.fog.near=D*0.85*fk;scene.fog.far=D*1.75*lerp(1,0.8,blizzardK(t));camera.far=D*2.2;camera.updateProjectionMatrix();
+  const sk=stormK(t);scene.fog.near=D*lerp(0.85,0.8,sk);scene.fog.far=D*lerp(1.75,1.62,sk);camera.far=D*2.2;camera.updateProjectionMatrix();
   sun.position.set(camT.x+SUN_DIR.x*50,camT.y+SUN_DIR.y*50,camT.z+SUN_DIR.z*50);sun.target.position.copy(camT);
 }
-function blizzardK(t){return smooth(0.7,1.0,keyAt(WK,t));}
 
 /* ---------- lighting ---------- */
-const cA=new THREE.Color(),cB=new THREE.Color(),cN=new THREE.Color(0x0a1322),cNs=new THREE.Color(0x26375a),cAur=new THREE.Color(0x1d4a4a),cAurS=new THREE.Color(0x7fe6c0);
+const cStorm=new THREE.Color(0xe6ecf1),cA=new THREE.Color(),cB=new THREE.Color(),cN=new THREE.Color(0x0a1322),cNs=new THREE.Color(0x26375a),cAur=new THREE.Color(0x1d4a4a),cAurS=new THREE.Color(0x7fe6c0);
 function darkK(t){return smooth(DARK.t0-0.15,DARK.t0+0.75,t)*(1-smooth(DARK.t1-0.3,DARK.t1+1.6,t));}
 function auroraK(t){return smooth(DARK.t1-0.4,DARK.t1+1.2,t)*(1-smooth(113,116,t));}
 let lightK=1;
 function lightsAt(t){let i=0;while(i<LK.length-2&&LK[i+1][0]<=t)i++;const a=LK[i],b=LK[i+1];const k=clamp((t-a[0])/(b[0]-a[0]),0,1);
   const dk=darkK(t), ak=auroraK(t);
-  scene.fog.color.copy(cA.setHex(a[1]).lerp(cB.setHex(b[1]),k)).lerp(cAur,ak*0.75).lerp(cN,dk*0.94);scene.background.copy(scene.fog.color);
+  const sk=stormK(t);scene.fog.color.copy(cA.setHex(a[1]).lerp(cB.setHex(b[1]),k)).lerp(cStorm,sk*0.6).lerp(cAur,ak*0.75).lerp(cN,dk*0.94);scene.background.copy(scene.fog.color);
   hemi.color.copy(cA.setHex(a[2]).lerp(cB.setHex(b[2]),k)).lerp(cAurS,ak*0.6).lerp(cNs,dk);hemi.groundColor.copy(cA.setHex(a[3]).lerp(cB.setHex(b[3]),k)).lerp(cN,dk);
-  hemi.intensity=lerp(a[4],b[4],k)*lerp(1,0.16,dk)*lerp(1,0.8,ak);
-  sun.color.copy(cA.setHex(a[5]).lerp(cB.setHex(b[5]),k));sun.intensity=lerp(a[6],b[6],k)*lerp(1,0.02,dk)*lerp(1,0.4,ak);
+  hemi.intensity=lerp(a[4],b[4],k)*lerp(1,0.16,dk)*lerp(1,0.8,ak)*lerp(1,1.1,sk);
+  sun.color.copy(cA.setHex(a[5]).lerp(cB.setHex(b[5]),k));sun.intensity=lerp(a[6],b[6],k)*lerp(1,0.02,dk)*lerp(1,0.4,ak)*lerp(1,0.5,sk);
   lightK=lerp(1,0.2,dk)*lerp(1,0.75,ak)*lerp(1,0.78,smooth(212,232,t));}
 
 /* ---------- world update ---------- */
@@ -1106,7 +1167,7 @@ function updateWorld(t,dt){
   for(const n of NOTES){if(n.got)continue;const d=n.t-t;if(d>16||d<-8){n.g.visible=false;continue;}n.g.visible=true;n.g.rotation.y=clock*2;n.g.rotation.z=Math.sin(clock*2+n.t)*0.15;n.g.position.y=n.y+Math.sin(clock*3+n.t)*0.12;}
   for(const R of ROPE_G){const vis=Math.abs(t-(R.t0+R.t1)/2)<14;R.grp.visible=vis;if(!vis)continue;R.flag.rotation.y=Math.PI/2+Math.sin(clock*5)*0.35;for(const K of R.knots){const pulse=Math.abs(t-K.th)<0.5?1+0.35*Math.cos((t-K.th)*Math.PI):1;K.k.scale.setScalar(pulse);K.k.rotation.z=Math.sin(clock*3+K.th)*0.15;}}
   AURORA.update(clock,auroraK(t));
-  SNOW.update(clock,keyAt(WK,t),camT.x,camT.y,camT.z,dt,lerp(1,0.5,darkK(t)));
+  const skk=stormK(t);STORM.update(clock,dt,Math.max(keyAt(SK,t),skk),skk,lerp(1,0.6,darkK(t)));
   for(const f of ANIM)f(clock);
 }
 
@@ -1131,9 +1192,9 @@ function frame(now){requestAnimationFrame(frame);const dt=Math.min(0.05,(now-las
   else if(G.state==='win'){const pw=G.winClock;G.winClock=(now-G.winStart)/1000;const wc=G.winClock;t=T_END+wc;zoom=smooth(0,2.5,wc);camOrbit=lerp(0,1.15,smooth(0.3,5,wc));
     const walk=Math.min(wc,0.35);CH.x=END.x+END.dx*walk*1.4;CH.z=END.z+END.dz*walk*1.4;CH.y=END.y+0.12;CH.lift=0;mode=wc<0.35?'run':'kneel';G.yaw=lerpAngle(G.yaw,END.yaw,0.2);
     const open=smooth(0.9,2.0,wc);CHEST.lid.rotation.x=-open*1.9;CHEST.glow.material.opacity=open;chestLight.intensity=open*2.4*(1+Math.sin(clock*6)*0.08);chestLight.position.set(CHEST.g.position.x,END.y+1.2,CHEST.g.position.z);
-    CHEST.scrolls.forEach((s,k)=>{s.visible=wc>1.6;const r=smooth(1.6,3.2,wc);s.position.y=0.45+r*(0.9+k*0.25);s.rotation.y=clock*(k?-1.2:1.2);});
+    CHEST.scrolls.forEach((s,k)=>{s.visible=wc>1.6&&(k===0||unlocked2);const r=smooth(1.6,3.2,wc);s.position.y=0.45+r*(0.9+k*0.25);s.rotation.y=clock*(k?-1.2:1.2);});
     if(wc>1.0&&Math.floor(wc/0.18)!==Math.floor(pw/0.18)){const p=CHEST.g.position;spawnP(p.x+rand(-0.4,0.4),END.y+0.7,p.z+rand(-0.3,0.3),rand(-0.3,0.3),rand(1.2,2.4),rand(-0.3,0.3),rand(1.2,2),rand(0.06,0.11),pick([0xffe08a,0xffd060,0xffffff]),-0.2,0.5);}
-    if(!G.endShown&&wc>4.0){G.endShown=true;$('stNotes').textContent=NOTES.filter(n=>n.got).length+'/'+NOTES.length;$('stPerf').textContent=(G.auto?'—':Math.round(G.perfect/Math.max(1,G.judged)*100)+'%');$('stTries').textContent=G.attempts;ui.end.hidden=false;showHud(false);}
+    if(!G.endShown&&wc>4.0){G.endShown=true;renderEnd();$('stNotes').textContent=NOTES.filter(n=>n.got).length+'/'+NOTES.length;$('stPerf').textContent=(G.auto?'—':Math.round(G.perfect/Math.max(1,G.judged)*100)+'%');$('stTries').textContent=G.attempts;ui.end.hidden=false;showHud(false);}
     if(actx&&!wind&&actx.currentTime-startAt>246)startWind();}
   else if(G.state==='debug'){t=G.dbgT;G.k=turnsBefore(t);G.errx=G.errz=0;for(const R of ROPES){R.jumpT=t>R.t0?R.t0:null;R.hopTimes=R.hops.slice(1).filter(h=>h<=t);}charPos(t,CH);mode=CH.lift>0.3?'hang':(inFall(t)?'air':'run');G.yaw=Math.atan2(CH.dx,CH.dz);}
   else{t=G.state==='paused'?G.pausedT:0;if(G.state==='title'){G.k=0;G.errx=G.errz=0;charPos(0,CH);G.yaw=Math.atan2(CH.dx,CH.dz);}}
@@ -1169,8 +1230,8 @@ function updateHud(t){if(ui.hud.hidden)return;const p=clamp(t/T_END,0,1);ui.prog
 
 requestAnimationFrame(frame);
 loadAudio();
-window.__cdh={time(){return songTime();},play(t,auto){G.auto=!!auto;syncOpts();actx.resume();playFrom(t,t);},tap(){tap();},seek(t){G.state='debug';G.dbgT=t;camInit=false;hideAll();showHud(true);},title(){G.state='title';hideAll();ui.title.hidden=false;},win(){G.state='win';G.winClock=0;G.winStart=performance.now();hideAll();CH.x=END.x;CH.z=END.z;},scroll(k){openScroll(k);},
-  mk(i){try{const r=SIGNS.find(q=>q.i===i);const T=makeSignTexture(r.st,r.text);return 'ok '+T.aspect;}catch(e){return 'ERR '+e.message+' '+e.stack;}},state(){return [G.state,G.dbgT,signTick,clock,fontsReady];},signs(){return SIGNS.filter(r=>r.grp.visible).map(r=>[r.i,r.tl,!!r.tex,!!r.planeMat.map,r.text.slice(0,12)]);},
+window.__cdh={time(){return songTime();},play(t,auto){G.auto=!!auto;G.usedAuto=!!auto;syncOpts();actx.resume();playFrom(t,t);},tap(){tap();},seek(t){G.state='debug';G.dbgT=t;camInit=false;hideAll();showHud(true);},title(){G.state='title';hideAll();ui.title.hidden=false;},win(){G.state='win';G.winClock=0;G.winStart=performance.now();hideAll();CH.x=END.x;CH.z=END.z;},finish(auto){G.auto=!!auto;G.usedAuto=!!auto;hideAll();CH.x=END.x;CH.z=END.z;startWin();},lock(){unlocked2=false;try{localStorage.removeItem('cdh.l2');}catch(e){}},unlocked(){return unlocked2;},scroll(k){openScroll(k);},
+  mk(i){try{const r=SIGNS.find(q=>q.i===i);const T=makeSignTexture(r.st,r.text);return 'ok '+T.aspect;}catch(e){return 'ERR '+e.message+' '+e.stack;}},state(){return [G.state,G.dbgT,signTick,clock,fontsReady];},tts(){return{dbg:TTS.dbg(),ok:TTS.ok,playing:TTS.playing,voices:(window.speechSynthesis?speechSynthesis.getVoices().length:0),note:(document.getElementById('vNote')||{}).textContent,play:(document.getElementById('vPlay')||{}).textContent};},signs(){return SIGNS.filter(r=>r.grp.visible).map(r=>[r.i,r.tl,!!r.tex,!!r.planeMat.map,r.text.slice(0,12)]);},
   norender(v){NORENDER=!!v;},ev(){return EV.map(e=>[e.t,e.kind]);},fail(){return G.fail?[G.fail.kind,G.fail.t]:null;},click(id){$(id).click();},
   info(){return{turns:TURNS.length,events:EV.length,notes:NOTES.length,got:NOTES.filter(n=>n.got).length,signs:SIGNS.length,cps:CHECKPOINTS,state:G.state,tris:renderer.info.render.triangles,calls:renderer.info.render.calls};}};
 })();
