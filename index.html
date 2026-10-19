@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="description" content="Juego musical al ritmo de «Colgando de un hilo» (U.P): un explorador cruza la Antártida hasta el Polo Sur.">
+<script data-goatcounter="https://fobdbat.goatcounter.com/count" async src="https://gc.zgo.at/count.js"></script>
 <style>:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}</style>
 <title>Colgando de un hilo</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -1030,9 +1031,13 @@ function tap(){
   const S=SEG[G.k];const nd=S.d^1;startFail(t,inDark(t)?'dark':'slip',DIRV[nd][0],DIRV[nd][1]);
 }
 function inDark(t){return t>=DARK.t0-0.2&&t<=DARK.t1+0.3;}
-function startFail(t,kind,dx,dz){charPos(t,CH);if(dx===undefined){dx=CH.dx;dz=CH.dz;}G.state='failing';G.fail={t,kind,x:CH.x,z:CH.z,dx,dz,y:CH.y,lift:CH.lift,clock:0,start:performance.now(),shown:false};stopAudio(0.35);G.yawTarget=Math.atan2(dx,dz);}
+function startFail(t,kind,dx,dz){if(!G.auto)track('caida-'+SLUG[biomeAtT(t)]+'-'+kind,'Caída: '+BIO[biomeAtT(t)].name+' ('+({slip:'giro',rope:'hilo',dark:'oscuridad'}[kind]||kind)+')');charPos(t,CH);if(dx===undefined){dx=CH.dx;dz=CH.dz;}G.state='failing';G.fail={t,kind,x:CH.x,z:CH.z,dx,dz,y:CH.y,lift:CH.lift,clock:0,start:performance.now(),shown:false};stopAudio(0.35);G.yawTarget=Math.atan2(dx,dz);}
 let unlocked2=false;try{unlocked2=localStorage.getItem('cdh.l2')==='1';}catch(e){}
-function startWin(){G.state='win';G.winClock=0;G.winStart=performance.now();G.endShown=false;if(!G.auto&&!G.usedAuto){unlocked2=true;try{localStorage.setItem('cdh.l2','1');}catch(e){}}}
+/* ---------- visit counter (GoatCounter; only active where its script is present) ---------- */
+const TRK_Q=[];function track(path,title){TRK_Q.push({path,title:title||path,event:true});flushTrack();}
+let trkTries=0;function flushTrack(){const gc=window.goatcounter;if(!gc||!gc.count){if(!document.querySelector('script[data-goatcounter]')||++trkTries>10){TRK_Q.length=0;return;}if(TRK_Q.length&&!flushTrack.t){flushTrack.t=setTimeout(()=>{flushTrack.t=0;flushTrack();},1500);}return;}trkTries=0;while(TRK_Q.length){try{gc.count(TRK_Q.shift());}catch(e){}}}
+const SLUG=['costa','musgos','barrera','glaciar','meseta','polo'];
+function startWin(){G.state='win';G.winClock=0;G.winStart=performance.now();G.endShown=false;track((G.auto||G.usedAuto)?'polo-en-paseo':'polo-jugando',(G.auto||G.usedAuto)?'Llega al Polo en modo paseo':'Llega al Polo jugando');if(!G.auto&&!G.usedAuto){unlocked2=true;try{localStorage.setItem('cdh.l2','1');}catch(e){}}}
 function renderEnd(){const L=!unlocked2;const b=$('btnRead2');b.classList.toggle('locked',L);b.setAttribute('aria-disabled',L?'true':'false');$('read2Kicker').textContent=L?'Lectura 2 · sellada':'Lectura 2';
   $('endLede').textContent=L?'Dentro del cofre hay dos pergaminos, pero el segundo sigue sellado. Puedes abrir el primero.':'Dentro del cofre hay dos pergaminos. Cada uno lee la letra de una manera distinta. ¿Cuál quieres abrir?';$('lockNote').hidden=!L;}
 function lastCheckpoint(t){let c=0;for(const cp of CHECKPOINTS)if(cp<=t-0.4)c=cp;return c;}
@@ -1053,7 +1058,7 @@ for(const id of['optCap','optCap2'])$(id).addEventListener('change',e=>{G.cap=e.
 $('syncMinus').addEventListener('click',()=>{syncMs=clamp(syncMs-10,-250,250);try{localStorage.setItem('cdh.sync',syncMs);}catch(e){}syncOpts();});
 $('syncPlus').addEventListener('click',()=>{syncMs=clamp(syncMs+10,-250,250);try{localStorage.setItem('cdh.sync',syncMs);}catch(e){}syncOpts();});
 function resetStats(){G.attempts=1;G.perfect=0;G.judged=0;G.hinted={};for(const n of NOTES){n.got=false;n.g.visible=true;}}
-function startFromZero(){if(!abuf)return;actx.resume();resetStats();G.usedAuto=G.auto;playFrom(0,0);showSection(BIO[0].name);if(!G.auto)setTimeout(()=>{if(G.state==='playing')showHint('Toca la pantalla al ritmo para girar en cada esquina',3000);},900);}
+function startFromZero(){if(!abuf)return;actx.resume();resetStats();G.usedAuto=G.auto;track(G.auto?'inicio-paseo':'inicio-partida',G.auto?'Empieza en modo paseo':'Empieza una partida');playFrom(0,0);showSection(BIO[0].name);if(!G.auto)setTimeout(()=>{if(G.state==='playing')showHint('Toca la pantalla al ritmo para girar en cada esquina',3000);},900);}
 $('btnPlay').addEventListener('click',startFromZero);
 $('btnRestartP').addEventListener('click',startFromZero);
 $('btnAgain').addEventListener('click',()=>{G.auto=false;syncOpts();startFromZero();});
@@ -1093,17 +1098,17 @@ const TTS=(function(){const S=window.speechSynthesis,ok=!!(S&&window.SpeechSynth
     document.getElementById('vStop').disabled=!playing&&idx===0;document.querySelectorAll('#vRates button').forEach(b=>b.setAttribute('aria-pressed',String(parseFloat(b.dataset.r)===rate)));
     const n=document.getElementById('vNote');if(n)n.textContent=failed?'No se ha podido usar la voz del dispositivo':(ok&&S.getVoices().length&&!voice)?'Este dispositivo no tiene voz en castellano':'≈ '+mins()+' min';}
   return{ok,build,play,pause,stop,setRate,refresh,get playing(){return playing;},dbg(){return [idx,segs.length,failed];}};})();
-function openScroll(key){TTS.stop();const R=READINGS[key],other=key==='general'?'scott':'general';let h=`<p class="kicker">${R.kicker}</p><h2 id="scrollTitle">${esc(R.title)}</h2><div class="rule"></div>`;
+function openScroll(key){TTS.stop();track(key==='general'?'lectura-1':'lectura-2',key==='general'?'Abre la lectura 1':'Abre la lectura 2');const R=READINGS[key],other=key==='general'?'scott':'general';let h=`<p class="kicker">${R.kicker}</p><h2 id="scrollTitle">${esc(R.title)}</h2><div class="rule"></div>`;
   if(TTS.ok)h+=`<div class="voice"><button class="vplay" id="vPlay" aria-pressed="false"><svg class="ico-play" viewBox="0 0 14 14" aria-hidden="true"><path d="M3 1.5v11l9-5.5z" fill="currentColor"/></svg><svg class="ico-pause" viewBox="0 0 14 14" aria-hidden="true" style="display:none"><path d="M3 1.5h3v11H3zM8 1.5h3v11H8z" fill="currentColor"/></svg><span>Escuchar</span></button><button class="vstop" id="vStop" aria-label="Detener la lectura" disabled><svg viewBox="0 0 14 14" aria-hidden="true"><rect x="2.5" y="2.5" width="9" height="9" fill="currentColor"/></svg></button><div class="vrates" id="vRates" role="group" aria-label="Velocidad de lectura">${[1,1.25,1.5,1.75].map(r=>`<button data-r="${r}" aria-pressed="false">${String(r).replace('.',',')}×</button>`).join('')}</div><span class="vnote" id="vNote"></span></div>`;
   for(const b of R.blocks){if(b.sep){h+=`<p class="sep">${esc(b.sep)}</p><div class="rule"></div>`;continue;}if(b.h)h+=`<h3>${esc(b.h)}</h3>`;for(const p of b.p||[])h+=`<p>${esc(p)}</p>`;if(b.lyr)h+=`<p class="lyr">${b.lyr.map(esc).join('<br>')}</p>`;for(const p of b.p2||[])h+=`<p>${esc(p)}</p>`;}
   const otherOk=other==='general'||unlocked2;h+=`<div class="sheet-foot">${otherOk?`<button class="primary" id="btnOther">${other==='scott'?'Leer la lectura 2':'Leer la lectura 1'}</button>`:'<p class="locked-txt">La lectura 2 se abre al llegar al Polo jugando, sin el modo paseo.</p>'}<button class="secondary" id="btnClose">Volver al cofre</button></div>`;
   $('sheetIn').innerHTML=h;$('sheet').scrollTop=0;ui.end.hidden=true;ui.scroll.hidden=false;const pp=$('papyrus');pp.classList.remove('open');void pp.offsetWidth;requestAnimationFrame(()=>pp.classList.add('open'));
-  if(TTS.ok){TTS.build([...$('sheetIn').querySelectorAll('h2,h3,p:not(.kicker)')]);$('vPlay').addEventListener('click',()=>{TTS.playing?TTS.pause():TTS.play();});$('vStop').addEventListener('click',()=>TTS.stop());
+  if(TTS.ok){TTS.build([...$('sheetIn').querySelectorAll('h2,h3,p:not(.kicker)')]);let voiced=false;$('vPlay').addEventListener('click',()=>{if(!TTS.playing&&!voiced){voiced=true;track('voz-'+(key==='general'?'lectura-1':'lectura-2'),'Escucha con voz la '+(key==='general'?'lectura 1':'lectura 2'));}TTS.playing?TTS.pause():TTS.play();});$('vStop').addEventListener('click',()=>TTS.stop());
     $('vRates').querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>TTS.setRate(parseFloat(b.dataset.r))));TTS.refresh();}
   if($('btnOther'))$('btnOther').addEventListener('click',()=>openScroll(other));$('btnClose').addEventListener('click',closeScroll);setTimeout(()=>{try{$('btnClose').focus({preventScroll:true});}catch(e){}},950);}
 function closeScroll(){TTS.stop();ui.scroll.hidden=true;ui.end.hidden=false;}
 $('btnRead1').addEventListener('click',()=>openScroll('general'));
-$('btnRead2').addEventListener('click',()=>{if(!unlocked2){const n=$('lockNote');n.hidden=false;n.classList.remove('flash');void n.offsetWidth;n.classList.add('flash');return;}openScroll('scott');});
+$('btnRead2').addEventListener('click',()=>{if(!unlocked2){track('lectura-2-sellada','Toca la lectura 2 sellada');const n=$('lockNote');n.hidden=false;n.classList.remove('flash');void n.offsetWidth;n.classList.add('flash');return;}openScroll('scott');});
 
 /* ---------- camera ---------- */
 const camT=new THREE.Vector3();let camPan=0,camInit=false,camElev=0.75,camOrbit=0;const UVEC=new THREE.Vector3(IS2,0,-IS2);
