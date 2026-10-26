@@ -132,11 +132,17 @@ kbd{font-family:var(--body);font-weight:600;font-size:13px;background:var(--fros
 .sheet-foot{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;padding-top:10px;}
 .sheet-foot button{flex:1 1 180px;}
 .sheet-foot .secondary{background:#e4d3a8;color:var(--parch-ink);box-shadow:0 2px 0 rgba(58,40,20,.25);}
+.spotify-b{display:flex;align-items:center;justify-content:center;gap:10px;font-family:var(--display);font-weight:700;font-size:15px;letter-spacing:.1em;text-transform:uppercase;text-decoration:none;border-radius:4px;padding:13px 16px;background:#1db954;color:#06200f;box-shadow:0 3px 0 #13843c;}
+.spotify-b svg{width:14px;height:14px;flex:none;}
+.spotify-b:active{transform:translateY(2px);box-shadow:0 1px 0 #13843c;}
+.spotify-b:focus-visible{outline:3px solid var(--signal);outline-offset:2px;}
+.sheet-foot .sp-cta{flex:1 1 100%;margin:4px 0 0;text-align:center;font-size:18px;color:var(--parch-ink);}
+.sheet-foot .spotify-b{flex:1 1 100%;margin-bottom:6px;}
 @media (prefers-reduced-motion: reduce){.judge{animation-duration:.01s}.section-label,.hint{transition:none}.rod,.sheet{transition:none}}
 </style>
+
 </head>
 <body>
-
 <div id="app">
   <canvas id="scene" aria-label="Paisaje antártico del juego"></canvas>
   <canvas id="aurora" aria-hidden="true"></canvas>
@@ -210,6 +216,7 @@ kbd{font-family:var(--body);font-weight:600;font-size:13px;background:var(--fros
         <button id="btnRead1" class="primary"><small>Lectura 1</small><b>Análisis general</b></button>
         <button id="btnRead2" class="read-b"><small id="read2Kicker">Lectura 2</small><b><svg class="lock" viewBox="0 0 12 14" aria-hidden="true"><rect x="1" y="6" width="10" height="7.5" rx="1.2" fill="currentColor"/><path d="M3.3 6V4.3a2.7 2.7 0 0 1 5.4 0V6" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>La historia concreta</b></button>
       </div>
+      <a id="lnkSpotify" class="spotify-b" href="https://open.spotify.com/album/5AVCmFyLKnFcObFbWADlEK" target="_blank" rel="noopener"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M3 1.5v11l9-5.5z" fill="currentColor"/></svg>Escúchala en Spotify</a>
       <p class="note lock-note" id="lockNote" hidden>El segundo pergamino está sellado. Se abre al llegar al Polo jugando, sin el modo paseo, y luego queda abierto en este dispositivo.</p>
       <dl class="stats">
         <div><dt>Cartas</dt><dd id="stNotes">0/0</dd></div>
@@ -1101,11 +1108,13 @@ const TTS=(function(){const S=window.speechSynthesis,ok=!!(S&&window.SpeechSynth
 function openScroll(key){TTS.stop();track(key==='general'?'lectura-1':'lectura-2',key==='general'?'Abre la lectura 1':'Abre la lectura 2');const R=READINGS[key],other=key==='general'?'scott':'general';let h=`<p class="kicker">${R.kicker}</p><h2 id="scrollTitle">${esc(R.title)}</h2><div class="rule"></div>`;
   if(TTS.ok)h+=`<div class="voice"><button class="vplay" id="vPlay" aria-pressed="false"><svg class="ico-play" viewBox="0 0 14 14" aria-hidden="true"><path d="M3 1.5v11l9-5.5z" fill="currentColor"/></svg><svg class="ico-pause" viewBox="0 0 14 14" aria-hidden="true" style="display:none"><path d="M3 1.5h3v11H3zM8 1.5h3v11H8z" fill="currentColor"/></svg><span>Escuchar</span></button><button class="vstop" id="vStop" aria-label="Detener la lectura" disabled><svg viewBox="0 0 14 14" aria-hidden="true"><rect x="2.5" y="2.5" width="9" height="9" fill="currentColor"/></svg></button><div class="vrates" id="vRates" role="group" aria-label="Velocidad de lectura">${[1,1.25,1.5,1.75].map(r=>`<button data-r="${r}" aria-pressed="false">${String(r).replace('.',',')}×</button>`).join('')}</div><span class="vnote" id="vNote"></span></div>`;
   for(const b of R.blocks){if(b.sep){h+=`<p class="sep">${esc(b.sep)}</p><div class="rule"></div>`;continue;}if(b.h)h+=`<h3>${esc(b.h)}</h3>`;for(const p of b.p||[])h+=`<p>${esc(p)}</p>`;if(b.lyr)h+=`<p class="lyr">${b.lyr.map(esc).join('<br>')}</p>`;for(const p of b.p2||[])h+=`<p>${esc(p)}</p>`;}
-  const otherOk=other==='general'||unlocked2;h+=`<div class="sheet-foot">${otherOk?`<button class="primary" id="btnOther">${other==='scott'?'Leer la lectura 2':'Leer la lectura 1'}</button>`:'<p class="locked-txt">La lectura 2 se abre al llegar al Polo jugando, sin el modo paseo.</p>'}<button class="secondary" id="btnClose">Volver al cofre</button></div>`;
+  const otherOk=other==='general'||unlocked2;h+=`<div class="sheet-foot"><p class="sp-cta">¿Te ha gustado la canción?</p><a class="spotify-b" id="lnkSpotify2" href="${SPOTIFY_URL}" target="_blank" rel="noopener"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M3 1.5v11l9-5.5z" fill="currentColor"/></svg>Escúchala en Spotify</a>${otherOk?`<button class="primary" id="btnOther">${other==='scott'?'Leer la lectura 2':'Leer la lectura 1'}</button>`:'<p class="locked-txt">La lectura 2 se abre al llegar al Polo jugando, sin el modo paseo.</p>'}<button class="secondary" id="btnClose">Volver al cofre</button></div>`;
   $('sheetIn').innerHTML=h;$('sheet').scrollTop=0;ui.end.hidden=true;ui.scroll.hidden=false;const pp=$('papyrus');pp.classList.remove('open');void pp.offsetWidth;requestAnimationFrame(()=>pp.classList.add('open'));
   if(TTS.ok){TTS.build([...$('sheetIn').querySelectorAll('h2,h3,p:not(.kicker)')]);let voiced=false;$('vPlay').addEventListener('click',()=>{if(!TTS.playing&&!voiced){voiced=true;track('voz-'+(key==='general'?'lectura-1':'lectura-2'),'Escucha con voz la '+(key==='general'?'lectura 1':'lectura 2'));}TTS.playing?TTS.pause():TTS.play();});$('vStop').addEventListener('click',()=>TTS.stop());
     $('vRates').querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>TTS.setRate(parseFloat(b.dataset.r))));TTS.refresh();}
-  if($('btnOther'))$('btnOther').addEventListener('click',()=>openScroll(other));$('btnClose').addEventListener('click',closeScroll);setTimeout(()=>{try{$('btnClose').focus({preventScroll:true});}catch(e){}},950);}
+  $('lnkSpotify2').addEventListener('click',()=>track('spotify-pergamino-'+(key==='general'?'1':'2'),'Abre Spotify desde la lectura '+(key==='general'?'1':'2')));if($('btnOther'))$('btnOther').addEventListener('click',()=>openScroll(other));$('btnClose').addEventListener('click',closeScroll);setTimeout(()=>{try{$('btnClose').focus({preventScroll:true});}catch(e){}},950);}
+const SPOTIFY_URL='https://open.spotify.com/album/5AVCmFyLKnFcObFbWADlEK';
+$('lnkSpotify').addEventListener('click',()=>track('spotify-tesoro','Abre Spotify desde el tesoro'));
 function closeScroll(){TTS.stop();ui.scroll.hidden=true;ui.end.hidden=false;}
 $('btnRead1').addEventListener('click',()=>openScroll('general'));
 $('btnRead2').addEventListener('click',()=>{if(!unlocked2){track('lectura-2-sellada','Toca la lectura 2 sellada');const n=$('lockNote');n.hidden=false;n.classList.remove('flash');void n.offsetWidth;n.classList.add('flash');return;}openScroll('scott');});
